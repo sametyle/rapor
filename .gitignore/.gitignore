@@ -1,0 +1,335 @@
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <Wire.h>
+#include <DFRobot_QMC5883.h>
+DFRobot_QMC5883 compass;
+Adafruit_SSD1306 display;
+const int trig1 = 9;
+const int echo1 = 8;
+const int trig2 = 7;
+const int echo2 = 6;
+const int trig3 = 5;
+const int echo3 = 4;
+const int trig4 = 3;
+const int echo4 = 2;
+unsigned int aci, referans;
+int saghiz = 10;
+int solhiz = 11;
+int sagileri = 12;
+int saggeri = 13;
+int solileri = A1;
+int solgeri = A0;
+
+int sagled = A3;
+int solled = A2;
+
+int sure1 = 0;
+int mesafe1 = 0;
+int sure2 = 0;
+int mesafe2 = 0;
+int sure3 = 0;
+int mesafe3 = 0;
+int sure4 = 0;
+int mesafe4 = 0;
+
+int sayac = 0;
+
+
+int pusula(void)
+{
+
+  Vector norm = compass.readNormalize();
+  float heading = atan2(norm.YAxis, norm.XAxis);
+  float declinationAngle = (4.0 + (26.0 / 60.0)) / (180 / PI);
+  heading += declinationAngle;
+
+  if (heading < 0) {
+    heading += 2 * PI;
+  }
+
+  if (heading > 2 * PI) {
+    heading -= 2 * PI;
+  }
+
+
+  float headingDegrees = heading * 180 / M_PI;
+  aci = headingDegrees;
+  delay(100);
+  return aci;
+
+}
+
+int  sensor1(void)
+{
+  digitalWrite(trig1, HIGH);
+  delayMicroseconds(1000);
+  digitalWrite(trig1, LOW);
+  sure1 = pulseIn(echo1, HIGH);
+  mesafe1 = (sure1 / 2) / 29.1;
+  delay(20);
+
+  return mesafe1;
+}
+
+int  sensor2(void)
+{
+  digitalWrite(trig2, HIGH);
+  delayMicroseconds(1000);
+  digitalWrite(trig2, LOW);
+  sure2 = pulseIn(echo2, HIGH);
+  mesafe2 = (sure2 / 2) / 29.1;
+  delay(20);
+
+  return mesafe2;
+}
+
+int  sensor3(void)
+{
+  digitalWrite(trig3, HIGH);
+  delayMicroseconds(1000);
+  digitalWrite(trig3, LOW);
+  sure3 = pulseIn(echo3, HIGH);
+  mesafe3 = (sure3 / 2) / 29.1;
+  delay(20);
+
+  return mesafe3;
+}
+
+int  sensor4(void)
+{
+  digitalWrite(trig4, HIGH);
+  delayMicroseconds(1000);
+  digitalWrite(trig4, LOW);
+  sure4 = pulseIn(echo4, HIGH);
+  mesafe4 = (sure4 / 2) / 29.1;
+  delay(20);
+
+  return mesafe4;
+}
+
+void setup() {
+  Serial.begin(9600);
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  while (!compass.begin())
+  {
+    Serial.println("Could not find a valid QMC5883 sensor, check wiring!");
+    delay(500);
+  }
+
+  if (compass.isHMC()) {
+    Serial.println("Initialize HMC5883");
+    compass.setRange(HMC5883L_RANGE_1_3GA);
+    compass.setMeasurementMode(HMC5883L_CONTINOUS);
+    compass.setDataRate(HMC5883L_DATARATE_15HZ);
+    compass.setSamples(HMC5883L_SAMPLES_8);
+  }
+  else if (compass.isQMC()) {
+    Serial.println("Initialize QMC5883");
+    compass.setRange(QMC5883_RANGE_2GA);
+    compass.setMeasurementMode(QMC5883_CONTINOUS);
+    compass.setDataRate(QMC5883_DATARATE_50HZ);
+    compass.setSamples(QMC5883_SAMPLES_8);
+  }
+
+  Wire.begin();
+
+
+  pinMode(trig1, OUTPUT);
+  pinMode(echo1, INPUT);
+  pinMode(trig2, OUTPUT);
+  pinMode(echo2, INPUT);
+  pinMode(trig3, OUTPUT);
+  pinMode(echo3, INPUT);
+  pinMode(trig4, OUTPUT);
+  pinMode(echo4, INPUT);
+  pinMode(solhiz, OUTPUT);
+  pinMode(saggeri, OUTPUT);
+  pinMode(solgeri, OUTPUT);
+  pinMode(solileri, OUTPUT);
+  pinMode(sagileri, OUTPUT);
+  pinMode(saghiz, OUTPUT);
+  pinMode(solled, OUTPUT);
+  pinMode(sagled, OUTPUT);
+
+
+}
+void loop() {
+duz:
+
+
+
+
+  digitalWrite(solled, LOW);
+  digitalWrite(sagled, LOW);
+  digitalWrite(sagileri, HIGH);
+  digitalWrite(saggeri, LOW);
+  digitalWrite(solileri, HIGH);
+  digitalWrite(solgeri, LOW);
+
+  analogWrite(solhiz, 90);
+  analogWrite(saghiz, 97);
+
+  pusula();
+  display.clearDisplay();
+  display.setTextColor(WHITE);
+  display.setTextSize(2);
+  display.setCursor(0, 0);
+  display.print(aci);
+  display.display();
+
+  if (aci > 90 && aci < 180)
+  {
+
+    for (;;)
+    {
+      pusula();
+      sensor1();
+      sensor2();
+      sensor3();
+      sensor4();
+      analogWrite(saghiz, 150);
+      analogWrite(solhiz, 70);
+      if (aci < 30) break;
+      if (mesafe2 < 30) goto atla1;
+      if (mesafe3 < 30) goto atla2;
+    }
+  }
+
+  if (aci > 180 && aci < 270)
+  {
+
+    for (;;)
+    {
+      pusula();
+      sensor1();
+      sensor2();
+      sensor3();
+      sensor4();
+      analogWrite(solhiz, 150);
+      analogWrite(saghiz, 70);
+      if (aci > 330) break;
+      if (mesafe2 < 30) goto atla1;
+      if (mesafe3 < 30) goto atla2;
+    }
+  }
+
+  sensor1();
+  sensor2();
+  sensor3();
+  sensor4();
+
+  if (mesafe2 > 50 && mesafe3 > 50) sayac = 0;
+
+  delay(10);
+  if (mesafe1 < 25)
+  {
+    for (;;)
+    {
+hareket1:
+
+      digitalWrite(sagled, HIGH);
+      analogWrite(solhiz, 0);
+      analogWrite(saghiz, 110);
+      sensor1();
+      sensor4();
+      sensor2();
+      sensor3();
+      if (mesafe4 < mesafe1) goto hareket2;
+      if (mesafe1 > 27) goto duz;
+      if (mesafe2 < 30) goto atla1;
+      if (mesafe3 < 30) goto atla2;
+    }
+  }
+
+  if (mesafe4 < 25)
+  {
+    for (;;)
+    {
+hareket2:
+      digitalWrite(solled, HIGH);
+      analogWrite(solhiz, 110);
+      analogWrite(saghiz, 0);
+      sensor1();
+      sensor4();
+      sensor2();
+      sensor3();
+      if (mesafe1 < mesafe4) goto hareket1;
+      if (mesafe4 > 27) goto duz;
+      if (mesafe2 < 30) goto atla1;
+      if (mesafe3 < 30) goto atla2;
+    }
+  }
+
+
+  if (mesafe2 < 30 || mesafe3 < 30)
+
+  {
+    for (;;) {
+dur:
+
+      digitalWrite(sagileri, LOW);
+      digitalWrite(saggeri, HIGH);
+      digitalWrite(solileri, LOW);
+      digitalWrite(solgeri, HIGH);
+      delay(150);
+
+      digitalWrite(solled, HIGH);
+      digitalWrite(sagled, HIGH);
+      delay(10);
+      sensor2();
+      sensor3();
+      if (mesafe3 < mesafe2) {
+        sayac++;
+atla2:  digitalWrite(sagileri, LOW);
+        digitalWrite(saggeri, HIGH);
+        digitalWrite(solileri, LOW);
+        digitalWrite(solgeri, HIGH);
+        analogWrite(solhiz, 70);
+        analogWrite(saghiz, 120);
+        delay(1000);
+
+        if (sayac > 2)
+        { sayac = 0;
+          digitalWrite(sagileri, LOW);
+          digitalWrite(saggeri, HIGH);
+          digitalWrite(solileri, LOW);
+          digitalWrite(solgeri, HIGH);
+          analogWrite(solhiz, 70);
+          analogWrite(saghiz, 120);
+          delay(3000);
+
+        }
+
+        goto duz;
+      }
+
+      if (mesafe2 < mesafe3)
+      {
+        sayac++;
+atla1:  digitalWrite(sagileri, LOW);
+        digitalWrite(saggeri, HIGH);
+        digitalWrite(solileri, LOW);
+        digitalWrite(solgeri, HIGH);
+        analogWrite(solhiz, 120);
+        analogWrite(saghiz, 75);
+        delay(1000);
+        if (sayac > 2)
+        { sayac = 0;
+          digitalWrite(sagileri, LOW);
+          digitalWrite(saggeri, HIGH);
+          digitalWrite(solileri, LOW);
+          digitalWrite(solgeri, HIGH);
+          analogWrite(solhiz, 120);
+          analogWrite(saghiz, 75);
+          delay(3000);
+
+        }
+        goto duz;
+
+      }
+    }
+
+  }
+
+
+}
